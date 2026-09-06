@@ -11,3 +11,7 @@ venv/
 .idea/
 .vscode/
 .DS_Store
+
+# Internal handover notes never belong in this repository.
+HANDOFF*.md
+*HANDOFF*.md

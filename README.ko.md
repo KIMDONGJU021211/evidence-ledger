@@ -16,7 +16,7 @@
 | 도구가 준 숫자 | **vs** 답이 지어낸 숫자 |
 
 ```bash
-pip install evidence-ledger
+pip install git+https://github.com/KIMDONGJU021211/evidence-ledger
 ```
 
 ## 30초
@@ -121,3 +121,5 @@ from evidence_ledger.presets import CLAUDE_CODE, PLAYWRIGHT_MCP, BROWSER_AGENT
 ## 라이선스
 
 Apache-2.0.
+
+만든 사람 — [@KIMDONGJU021211](https://github.com/KIMDONGJU021211) · [@bohyeon1010](https://github.com/bohyeon1010). [`AUTHORS`](AUTHORS) 참고.

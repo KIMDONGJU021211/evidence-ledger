@@ -17,7 +17,7 @@ result and can therefore tell them apart:
 | a number a tool returned | **vs** a number the answer invented |
 
 ```bash
-pip install evidence-ledger
+pip install git+https://github.com/KIMDONGJU021211/evidence-ledger
 ```
 
 ## 30 seconds
@@ -145,3 +145,6 @@ there.
 ## License
 
 Apache-2.0. See [`LICENSE`](LICENSE).
+
+Maintained by [@KIMDONGJU021211](https://github.com/KIMDONGJU021211) and
+[@bohyeon1010](https://github.com/bohyeon1010). See [`AUTHORS`](AUTHORS).

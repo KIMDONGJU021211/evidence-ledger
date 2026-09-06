@@ -1,0 +1,11 @@
+evidence-ledger is copyright 2026 Kim Dongju and Shim Bohyeon.
+
+Maintainers
+-----------
+Kim Dongju    (@KIMDONGJU021211)
+Shim Bohyeon  (@bohyeon1010)
+
+The field notes in docs/FIELD-NOTES.md come from a production agent the
+maintainers run against live Korean commerce, jobs and booking sites. The
+incidents are ours, including the ones where the instrument was the thing
+that was broken.
