@@ -51,6 +51,11 @@ def main() -> None:
     # The trace for this run says: 4 tools, all ok. Nothing above is visible
     # from that. The posting at /p/2 was never read, and every detail asserted
     # about it -- plus the salary -- came from somewhere the tools did not go.
+    #
+    # Note what the number check prints: 62000000 and 15. The salary is the
+    # finding. The 15 is "Oct 15" -- a date, not a claim. This is a signal, not
+    # a verdict, and it is meant to be read next to answered_from_listing_only.
+    # A tool that reports only clean findings is a tool that is hiding some.
 
 
 if __name__ == "__main__":

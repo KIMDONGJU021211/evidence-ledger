@@ -20,7 +20,7 @@ from evidence_ledger.core import EFFECT_READ_LOCAL, TYPE_BODY_READ
 #: The real tool result.
 LOOKUP = {
     "ok": True,
-    "target_label": "Myongji University, Computer Science",
+    "target_label": "Northvale University, Computer Science",
     "probability": 0.0,
     "band": "high risk",
     "q50": 858.964,
@@ -53,7 +53,7 @@ def test_the_ledger_flags_them_end_to_end():
     ledger = Ledger(MANIFEST, run_id="r1")
     ledger.record("lookup", LOOKUP, ok=True, step=1)
 
-    answer = "Myongji 75.2%, Sungshin 92.9%, Soongsil 66.9% (mean 73.69%)."
+    answer = "Northvale 75.2%, Eastbrook 92.9%, Fairmont 66.9% (mean 73.69%)."
     assert ledger.unsupported_numbers(answer) == {"75.2", "92.9", "66.9", "73.69"}
 
 
@@ -100,6 +100,14 @@ def test_small_and_round_numbers_are_ignored():
     """They appear in ordinary prose and would bury the real finding."""
     claimed = numbers_claimed_in("I checked 3 sites and read 100 pages, top 5.")
     assert claimed == set()
+
+
+def test_a_trailing_zero_does_not_smuggle_a_trivial_number_through():
+    """"3.0" is the claim "3". The filter must not depend on how it was typed."""
+    assert numbers_claimed_in("about 3.0 sites") == set()
+    assert numbers_claimed_in("about 3 sites") == set()
+    # and a real claim still survives the same path
+    assert numbers_claimed_in("it was 42.0 percent") == {"42"}
 
 
 def test_the_cap_holds():

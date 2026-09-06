@@ -154,7 +154,7 @@ class EvidenceRecord:
 #:
 #: Found 2026-09-05 while counting keys in real traces instead of guessing
 #: them: two tools returned ``["pytest", "tests/...", "-v"]`` and
-#: ``["Kyunghee University, Computer Science"]``. The extractor only accepted
+#: ``["Example University, Computer Science"]``. The extractor only accepted
 #: ``str``, so those tools were **registered and silently inert** — the same
 #: trap, met again on the shape of the value rather than the name of the key.
 _SOURCE_LIST_MAX = 8
@@ -259,8 +259,13 @@ def numbers_claimed_in(answer: str) -> set[str]:
         digits = whole.replace(",", "")
         if frac:
             value = f"{digits}.{frac}".rstrip("0").rstrip(".")
-            found.add(repr(float(value)) if "." in value else value)
-        elif digits not in _TRIVIAL:
+            if "." in value:
+                found.add(repr(float(value)))
+                continue
+            # "3.0" is the claim "3". It has to be dropped by the same rule,
+            # or the filter depends on how the author typed it.
+            digits = value
+        if digits not in _TRIVIAL:
             found.add(str(int(digits)))
     return found
 

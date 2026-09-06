@@ -74,7 +74,7 @@ report = ledger.summarize(read_only=True)
 And the number check:
 
 ```python
->>> ledger.unsupported_numbers("Myongji 75.2%, Sungshin 92.9% (mean 73.69%)")
+>>> ledger.unsupported_numbers("Northvale 75.2%, Eastbrook 92.9% (mean 73.69%)")
 {'75.2', '92.9', '73.69'}
 ```
 
@@ -160,9 +160,8 @@ These are in the tests, named after what broke.
 The finding that harness wiring can dominate model choice is not ours alone —
 [Harness-Bench](https://github.com/Qihoo360/harness-bench)
 ([paper](https://arxiv.org/pdf/2605.27922)) established it across models, and
-the literature on
-[SWE-bench overestimation](https://arxiv.org/html/2510.08996v1) covers the
-transfer problem. We arrived at it independently on local models with a
+[Saving SWE-Bench](https://arxiv.org/html/2510.08996v1) shows how much of a
+benchmark score survives mutating the benchmark. We arrived at it independently on local models with a
 controlled ablation, and this library is one of the instruments that got us
 there.
 

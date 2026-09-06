@@ -67,7 +67,7 @@ count them in real traces* — turned up two tools handing back:
 
 ```python
 command       = ["pytest", "tests/test_a.py", "-v"]
-target_labels = ["Kyunghee University, Computer Science"]
+target_labels = ["Example University, Computer Science"]
 ```
 
 The extractor checked `isinstance(value, str)`. Both tools were **registered and
@@ -119,9 +119,9 @@ became undoable, and that is the definition of a write.
 probability = 0.0    band = "high risk"
 ```
 
-The answer's table read `75.2%`, `92.9%`, `66.9%`. Then the agent fed those
-twelve invented values into a code sandbox and computed **"mean 73.69%,
-σ 24.72%"** — fabrication wearing the clothes of statistics.
+The answer's table read `75.2%`, `92.9%`, `66.9%` — twelve rows in all. The
+agent then fed those twelve invented values into a code sandbox and computed
+**"mean 73.69%, σ 24.72%"** — fabrication wearing the clothes of statistics.
 
 Every check passed. Grounding compared names. The ledger knew only whether
 something had been read. No verifier had a reason to fire. All three were

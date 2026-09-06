@@ -70,7 +70,7 @@ report = ledger.summarize(read_only=True)
 숫자 대조:
 
 ```python
->>> ledger.unsupported_numbers("명지 75.2%, 성신 92.9% (평균 73.69%)")
+>>> ledger.unsupported_numbers("노스베일 75.2%, 이스트브룩 92.9% (평균 73.69%)")
 {'75.2', '92.9', '73.69'}
 ```
 
@@ -135,8 +135,8 @@ from evidence_ledger.presets import CLAUDE_CODE, PLAYWRIGHT_MCP, BROWSER_AGENT
 하네스 배선이 모델 선택을 압도할 수 있다는 건 우리만의 발견이 아니다.
 [Harness-Bench](https://github.com/Qihoo360/harness-bench)
 ([논문](https://arxiv.org/pdf/2605.27922))가 모델을 가로질러 세웠고,
-[SWE-bench 과대평가](https://arxiv.org/html/2510.08996v1) 쪽 문헌이 전이 문제를
-다룬다. 우리는 로컬 모델에서 통제군을 두고 독립적으로 같은 곳에 닿았고, 이
+[Saving SWE-Bench](https://arxiv.org/html/2510.08996v1)는 벤치마크를 변형했을 때
+점수가 얼마나 남는지를 보여 준다. 우리는 로컬 모델에서 통제군을 두고 독립적으로 같은 곳에 닿았고, 이
 라이브러리는 거기까지 가는 데 쓴 계측기 중 하나다.
 
 ## 라이선스
