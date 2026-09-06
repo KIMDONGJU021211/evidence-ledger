@@ -146,5 +146,5 @@ there.
 
 Apache-2.0. See [`LICENSE`](LICENSE).
 
-Maintained by [@KIMDONGJU021211](https://github.com/KIMDONGJU021211) and
+Copyright 2026 [@KIMDONGJU021211](https://github.com/KIMDONGJU021211) and
 [@bohyeon1010](https://github.com/bohyeon1010). See [`AUTHORS`](AUTHORS).
