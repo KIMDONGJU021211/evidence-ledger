@@ -1,5 +1,11 @@
 # evidence-ledger
 
+[![tests](https://github.com/KIMDONGJU021211/evidence-ledger/actions/workflows/test.yml/badge.svg)](https://github.com/KIMDONGJU021211/evidence-ledger/actions/workflows/test.yml)
+[![python](https://img.shields.io/badge/python-3.9%20%7C%203.11%20%7C%203.13-blue)](https://github.com/KIMDONGJU021211/evidence-ledger)
+[![license](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
+
+**한국어: [README.ko.md](README.ko.md)**
+
 **Your agent said `75.2%`. The tool returned `0.0`.**
 
 A step trace tells you a tool ran and came back `ok`. It does not tell you

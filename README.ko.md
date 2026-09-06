@@ -1,5 +1,11 @@
 # evidence-ledger
 
+[![tests](https://github.com/KIMDONGJU021211/evidence-ledger/actions/workflows/test.yml/badge.svg)](https://github.com/KIMDONGJU021211/evidence-ledger/actions/workflows/test.yml)
+[![python](https://img.shields.io/badge/python-3.9%20%7C%203.11%20%7C%203.13-blue)](https://github.com/KIMDONGJU021211/evidence-ledger)
+[![license](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
+
+**In English: [README.md](README.md)**
+
 **에이전트가 「75.2%」라고 답했다. 도구가 준 값은 `0.0` 이었다.**
 
 걸음 기록은 도구가 돌았고 `ok` 였다는 것까지만 말해 준다. 모델이 그 페이지를
