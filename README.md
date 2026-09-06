@@ -20,6 +20,30 @@ result and can therefore tell them apart:
 pip install git+https://github.com/KIMDONGJU021211/evidence-ledger
 ```
 
+## You're probably here because
+
+- The trace says the tool ran and came back `ok`, and you still cannot tell
+  whether the model **read** the page or only saw its title in a list of search
+  results.
+- An answer quoted a number — a price, a percentage, a count — that is **not in
+  any tool result**, and you want to know which numbers to go check.
+- Your grounding or citation check reports **100%** and you do not believe it.
+- A run you declared read-only **wrote something**, and nothing caught it.
+- The agent **opened** a link, spent a step there, and then answered from the
+  listing page it came from anyway.
+- A sub-agent did the reading, so the parent transcript holds no evidence of it
+  and every grounding check passes **in silence**.
+- Your agent summarized a document it never fetched, and the summary was
+  plausible enough that nobody noticed for a week.
+- You want to know **which sources were actually read** in a run, not which
+  tools were called.
+
+Every one of those runs is indistinguishable from a good one in a step trace.
+They are distinguishable in a per-result ledger, which is all this library is.
+
+It does not know or care which framework you use. It needs one dict per tool
+result and a manifest saying what each tool does.
+
 ## 30 seconds
 
 ```python
