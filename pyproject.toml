@@ -1,0 +1,40 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "evidence-ledger"
+version = "0.1.0"
+description = "Tell what an AI agent actually read from what it merely opened."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "Apache-2.0" }
+keywords = [
+    "llm", "agent", "evaluation", "hallucination", "grounding",
+    "observability", "tool-use", "audit",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Software Development :: Quality Assurance",
+    "Typing :: Typed",
+]
+# No third-party dependencies. On purpose: this is meant to be droppable into
+# an agent loop that already has its own opinions about everything else.
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
+[project.urls]
+Homepage = "https://github.com/OWNER/evidence-ledger"
+Issues = "https://github.com/OWNER/evidence-ledger/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/evidence_ledger"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
