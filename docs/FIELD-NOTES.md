@@ -191,6 +191,73 @@ be honest about what it read, record what it read.
 
 ---
 
+## 11. The 56% was the instrument, and shipping only half proved it
+
+**2026-09-07.** §8 shipped the field collector and left the body uncollected,
+on the reasoning that field numbers are unambiguous. A month later, three
+deliverables were graded with it:
+
+```
+spreadsheet    6 numbers    6 unsupported   (100%)
+document      34 numbers   34 unsupported   (100%)
+spreadsheet   10 numbers   10 unsupported   (100%)
+```
+
+Every one of those values was then found by hand on the live page — page
+counts, ISBNs, durations, applicant counts. Not one was invented.
+
+A 100% violation rate that is entirely instrument error is worse than no
+measurement, because it looks like a finding. We nearly reported it as one.
+
+The fix is the companion set, kept separate:
+
+```
+field numbers   the tool said applicants: 5        unambiguous
+body numbers    "432" appeared in text it returned  weak, but real
+```
+
+Merged, the field comparison loses its meaning. Omitted, the comparison cannot
+run. A number in **neither** set came from somewhere the tools never went.
+
+The same day, on a different run, an agent opened a service page and an
+unrelated title and then reported three books with page counts and ISBNs. With
+both sets in place: **6 of 6 flagged.** The signal survived; the noise did not.
+
+→ `numbers_in_body()`.
+
+---
+
+## 12. A check that extracts nothing passes
+
+Same run. Alongside the number check sat a name check — *are the names in this
+answer present in what we actually read?* It had caught a substituted company
+name before. On the fabricated book table it said nothing.
+
+It had not passed. It had found **zero names to check**. Its table pattern
+required the first column to be a rank:
+
+```
+| 1 | Some Company | full-time |     <- seen
+| Some Book | 548 pages | ISBN… |    <- not seen
+```
+
+Answers that rank things have a number column. Answers that just tabulate do
+not. Half of all tables were invisible, and invisibility reads exactly like
+approval.
+
+Two lessons, and the second is the general one:
+
+1. Widening the pattern pulled in header cells (`Title`, `Pages`). The fix is
+   not a word list of header names — that leaks the moment someone renames a
+   column. A markdown header is **the row directly above the separator line**.
+   Decide it by structure.
+2. **A check that finds nothing to check should not report success.** Ours
+   returned an empty string, which the caller read as "no problem". Separate
+   *nothing was wrong* from *nothing was examined* — they are different
+   answers, and only one of them is evidence.
+
+---
+
 ## What we would tell you to check first
 
 1. **Your denominator.** Before believing any agent metric, ask what is being

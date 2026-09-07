@@ -31,6 +31,7 @@ from .core import (
     canonical_source,
     numbers_claimed_in,
     numbers_in,
+    numbers_in_body,
 )
 
 __version__ = "0.1.0"
@@ -41,6 +42,7 @@ __all__ = [
     "EvidenceRecord",
     "canonical_source",
     "numbers_in",
+    "numbers_in_body",
     "numbers_claimed_in",
     "TYPE_BODY_READ",
     "TYPE_PAGE_OPEN",

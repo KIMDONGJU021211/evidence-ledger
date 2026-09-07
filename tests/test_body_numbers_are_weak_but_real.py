@@ -1,0 +1,62 @@
+"""The companion set. Field notes §8 and §11.
+
+`numbers_in` reads structured fields only. That is correct and it is not
+enough: a run where every answer number came from page body text scored 100%
+unsupported, and every one of those numbers was real.
+
+These tests pin both directions — the real value must stop being flagged, and
+the invented one must keep being flagged.
+"""
+
+from evidence_ledger import numbers_claimed_in, numbers_in, numbers_in_body
+
+
+def test_a_value_read_off_the_page_is_no_longer_a_violation():
+    # What the tool returned: a page body, as text.
+    result = {"url": "https://example.com/book/1", "text": "432 pages · ISBN 9791163034735"}
+    answer = "The book is 432 pages, ISBN 9791163034735."
+
+    fields_only = numbers_claimed_in(answer) - numbers_in(result)
+    both = fields_only - numbers_in_body(result)
+
+    assert fields_only, "fields alone flag a genuine value — this is §8's 56%"
+    assert not both, "with the body set, the genuine value stops being a finding"
+
+
+def test_an_invented_value_is_still_a_violation():
+    # The agent opened a service page and an unrelated book, then reported
+    # three books with page counts. Only one title was ever on screen.
+    result = {"text": "Jump to Python | 432 pages | ISBN 9791163034735 · Binding service"}
+    answer = "| Jump to Python | 548 pages | 9791165215918 |"
+
+    unsupported = numbers_claimed_in(answer) - numbers_in(result) - numbers_in_body(result)
+
+    assert unsupported == {"548", "9791165215918"}
+
+
+def test_the_two_sets_stay_separate():
+    """Merged, the field comparison loses its meaning. Keep them apart."""
+    result = {"probability": 0.0, "note": "band 75 is the top decile"}
+
+    # 0.0 normalises to "0" — an integer-valued float is the same claim.
+    assert numbers_in(result) == {"0"}
+    assert "75" in numbers_in_body(result)
+    assert "75" not in numbers_in(result)
+
+
+def test_a_body_number_does_not_smuggle_in_the_trivial_ones():
+    result = {"text": "1 of 3 rows, 2 skipped, 10 total, 100 percent"}
+    assert numbers_in_body(result) == set()
+
+
+def test_thousands_separators_and_decimals_match_the_answer_side():
+    result = {"text": "sold 1,500,000 units at 75.20 each"}
+    answer = "1500000 units at 75.2"
+    assert not (numbers_claimed_in(answer) - numbers_in_body(result))
+
+
+def test_a_huge_body_does_not_run_away():
+    """Bodies are large and repetitive. The cap is named and asserted, for the
+    same reason §9 gives: truncation arrives as silence, not as an error."""
+    result = {"text": " ".join(str(n) for n in range(20_000, 40_000))}
+    assert len(numbers_in_body(result)) <= 600

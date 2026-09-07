@@ -102,6 +102,25 @@ was mostly reporting its own blindness. Confirmed cases: **one**.
 So this ships the measurement, not the gate. Accumulate real samples first;
 build the gate on them. A gate you cannot back-test is a gate you cannot trust.
 
+### `numbers_in_body()` — the companion set
+
+Shipping only the field collector left that blindness in place. Graded with
+fields alone, three real deliverables scored **100% unsupported** — and every
+value in them was then found by hand on the live page.
+
+```python
+result = {"text": "432 pages · ISBN 9791163034735", "applicants": 5}
+
+numbers_in(result)        # {'5'}                    the tool said so
+numbers_in_body(result)   # {'432', '9791163034735'} it was in the text
+```
+
+Keep them **separate**. Merged, the field comparison loses its meaning;
+omitted, the comparison cannot run at all. A number in neither set came from
+somewhere the tools never went — on a run where an agent opened a service page
+and an unrelated title, then reported three books with page counts, that check
+flagged 6 of 6.
+
 ## Presets
 
 ```python

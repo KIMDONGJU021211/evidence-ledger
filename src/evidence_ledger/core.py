@@ -270,6 +270,78 @@ def numbers_claimed_in(answer: str) -> set[str]:
     return found
 
 
+#: How deep to walk, and how many to keep, when reading numbers out of body
+#: text. Separate from the field limits: bodies are large and repetitive.
+_BODY_NUMBERS_MAX = 600
+#: How much of one string to read. An extracted page body can be 30,000 chars.
+_BODY_TEXT_MAX = 40_000
+
+
+def numbers_in_body(result: Mapping[str, Any] | None) -> set[str]:
+    """Numbers a tool returned **inside its text**. The companion to `numbers_in`.
+
+    Why this exists
+    ---------------
+    `numbers_in` reads only structured fields, deliberately: the meaning there
+    is unambiguous. Field notes §8 records what that cost — 56% of answer
+    numbers looked "unsupported" and the finding was the measurement's own
+    blindness, because answer numbers come from page *body* text.
+
+    Shipping only the field collector left that blindness in place. A later run
+    made it plain: three deliverables, and the grounding check reported
+
+        6 of 6 · 34 of 34 · 10 of 10 unsupported
+
+    Every one of those values was then found, by hand, on the live page. A
+    100% violation rate that is entirely instrument error is worse than no
+    measurement, because it looks like a finding.
+
+    So collect body numbers too — **in a separate set**. Merged, the field
+    comparison loses its meaning; omitted, the comparison cannot run at all.
+
+        field numbers   the tool said ``applicants: 5``      unambiguous
+        body numbers    ``432`` appeared in text it returned  weak, but real
+
+    A number in the answer that is in **neither** set came from somewhere the
+    tools never went.
+
+    Measured, on the run that motivated this: with fields alone, three
+    deliverables scored 100% unsupported. With both sets, 0% — and on a
+    separate run where the agent genuinely invented six values, 6 of 6 were
+    still flagged. The signal survived; the noise did not.
+    """
+    found: set[str] = set()
+
+    def take(text: str) -> None:
+        for whole, frac in _NUMBER_IN_TEXT.findall(text[:_BODY_TEXT_MAX]):
+            if len(found) >= _BODY_NUMBERS_MAX:
+                return
+            digits = whole.replace(",", "")
+            if frac:
+                value = f"{digits}.{frac}".rstrip("0").rstrip(".")
+                if "." in value:
+                    found.add(repr(float(value)))
+                    continue
+                digits = value
+            if digits not in _TRIVIAL:
+                found.add(str(int(digits)))
+
+    def walk(node: Any, depth: int) -> None:
+        if len(found) >= _BODY_NUMBERS_MAX or depth > _NUMBERS_DEPTH:
+            return
+        if isinstance(node, str):
+            take(node)
+        elif isinstance(node, Mapping):
+            for value in node.values():
+                walk(value, depth + 1)
+        elif isinstance(node, (list, tuple)):
+            for value in node[:50]:
+                walk(value, depth + 1)
+
+    walk(dict(result or {}), 0)
+    return found
+
+
 def canonical_source(value: str, *, kind: str = "path") -> str:
     """Call the same place by the same name.
 
