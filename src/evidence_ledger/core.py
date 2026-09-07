@@ -240,7 +240,22 @@ def numbers_in(result: Mapping[str, Any] | None) -> set[str]:
 
 
 #: A number in prose. Handles thousands separators and decimals.
-_NUMBER_IN_TEXT = re.compile(r"(?<![\w.])(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d+))?")
+#
+# ★ The lookbehind rejects **ASCII** word characters, not `\w`. In Python `\w`
+#   matches Hangul — and every CJK script — so `(?<![\w.])` silently dropped
+#   every number written against a label with no space:
+#
+#       "예상 기간360일"   -> nothing        (the extractor joins DOM nodes)
+#       "쪽수432쪽"        -> nothing
+#       "예상 기간: 360일" -> 360            (only because a colon intervened)
+#
+#   Measured 2026-09-07: an agent read a page carrying `예상 기간360일`, wrote
+#   **360** in its answer, and the check called it unsupported. The reading was
+#   correct and the instrument was not. Latin-glued digits stay excluded —
+#   those are identifiers and version numbers (`v2`, `call_12`).
+_NUMBER_IN_TEXT = re.compile(
+    r"(?<![0-9A-Za-z_.])(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d+))?"
+)
 
 #: Values so common they carry no evidentiary weight. Flagging them buries the
 #: real finding in noise — the same reason ordinals are excluded above.

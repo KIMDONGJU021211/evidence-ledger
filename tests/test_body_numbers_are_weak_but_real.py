@@ -60,3 +60,26 @@ def test_a_huge_body_does_not_run_away():
     same reason §9 gives: truncation arrives as silence, not as an error."""
     result = {"text": " ".join(str(n) for n in range(20_000, 40_000))}
     assert len(numbers_in_body(result)) <= 600
+
+
+def test_a_number_written_against_a_korean_label_is_visible():
+    r"""`\w` matches Hangul. `(?<![\w.])` therefore dropped every number an
+    extractor joined to its label — which is most of them on CJK pages.
+
+    Measured: an agent read `예상 기간360일`, wrote 360, and was called
+    unsupported for it."""
+    result = {"text": "경력 시니어 예상 기간360일 근무 위치서울"}
+    assert "360" in numbers_in_body(result)
+    assert not (numbers_claimed_in("예상 기간: 360일") - numbers_in_body(result))
+
+
+def test_latin_glued_digits_stay_out():
+    """Identifiers and version numbers are not claims."""
+    result = {"text": "call_12 returned v2 of utf8 in step3"}
+    assert numbers_in_body(result) == set()
+
+
+def test_the_answer_side_sees_them_too():
+    """Both sides share the pattern; if only one saw them the comparison
+    would be asymmetric — which is how false accusations are produced."""
+    assert "432" in numbers_claimed_in("쪽수432쪽")
