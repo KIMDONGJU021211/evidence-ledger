@@ -83,3 +83,26 @@ def test_the_answer_side_sees_them_too():
     """Both sides share the pattern; if only one saw them the comparison
     would be asymmetric — which is how false accusations are produced."""
     assert "432" in numbers_claimed_in("쪽수432쪽")
+
+
+def test_a_date_is_not_a_claim_and_must_not_split_the_two_sides():
+    """The tool printed `2026.09.13`; the answer wrote `09.13`. Same date, and
+    the two sides normalised it to `2026.09` and `9.13` — no overlap, so the
+    check reported a fabricated value.
+
+    A false accusation is how a fabrication check gets switched off."""
+    source = {"text": "회사명 우주종합건설 마감일 2026.09.13 고용형태 정규직"}
+    answer = "| 우주종합건설 | 정규직 | ~09.13(일) |"
+
+    assert not (numbers_claimed_in(answer) - numbers_in_body(source))
+
+
+def test_the_common_date_shapes_all_drop_out():
+    for text in ("2026.09.13", "09.13(일)", "2026년 9월 13일", "9월 13일", "D-23"):
+        assert numbers_claimed_in(text) == set(), text
+
+
+def test_real_values_survive_the_date_filter():
+    """The filter must not eat page counts, prices or percentages."""
+    got = numbers_claimed_in("432쪽 · 19,800원 · 75.2% · 360일")
+    assert got == {"432", "19800", "75.2", "360"}

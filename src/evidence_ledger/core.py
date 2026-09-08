@@ -239,6 +239,30 @@ def numbers_in(result: Mapping[str, Any] | None) -> set[str]:
     return found
 
 
+#: Dates. Not claims, and the main source of format asymmetry between the two
+#: sides of the comparison.
+#
+# ★ Measured 2026-09-09. A tool returned `마감일 2026.09.13`; the answer wrote
+#   `~09.13(일)`. Same date, and the two sides normalised it differently:
+#
+#       source "2026.09.13"  ->  {"2026.09"}    (the dotted tail is skipped)
+#       answer "09.13"       ->  {"9.13"}
+#
+#   No overlap, so the check reported a fabricated value. It was a rendering
+#   difference. A false accusation in a fabrication check is how the check gets
+#   switched off, so dates are removed from both sides before counting.
+#
+#   Deliberately not clever: these four shapes cover what a page and an answer
+#   actually print, and date formats do not drift the way vocabulary does.
+_DATE_SHAPES = re.compile(
+    r"\d{4}\s*[.\-/]\s*\d{1,2}\s*[.\-/]\s*\d{1,2}"      # 2026.09.13
+    r"|\d{1,2}\s*[.\-/]\s*\d{1,2}\s*\("                   # 09.13(일)
+    r"|\d{4}년\s*\d{1,2}월(?:\s*\d{1,2}일)?"                 # 2026년 9월 13일
+    r"|\d{1,2}월\s*\d{1,2}일"                                # 9월 13일
+    r"|(?<![A-Za-z0-9])D\s*-\s*\d{1,3}"                     # D-23
+)
+
+
 #: A number in prose. Handles thousands separators and decimals.
 #
 # ★ The lookbehind rejects **ASCII** word characters, not `\w`. In Python `\w`
@@ -270,7 +294,7 @@ def numbers_claimed_in(answer: str) -> set[str]:
     ordinary prose and would drown the signal.
     """
     found: set[str] = set()
-    for whole, frac in _NUMBER_IN_TEXT.findall(answer or ""):
+    for whole, frac in _NUMBER_IN_TEXT.findall(_DATE_SHAPES.sub(" ", answer or "")):
         digits = whole.replace(",", "")
         if frac:
             value = f"{digits}.{frac}".rstrip("0").rstrip(".")
@@ -328,7 +352,11 @@ def numbers_in_body(result: Mapping[str, Any] | None) -> set[str]:
     found: set[str] = set()
 
     def take(text: str) -> None:
-        for whole, frac in _NUMBER_IN_TEXT.findall(text[:_BODY_TEXT_MAX]):
+        # 날짜는 양쪽에서 **같은 방식으로** 지운다. 한쪽만 지우면 비대칭이 생기고,
+        # 비대칭은 거짓 고발이 된다.
+        for whole, frac in _NUMBER_IN_TEXT.findall(
+            _DATE_SHAPES.sub(" ", text[:_BODY_TEXT_MAX])
+        ):
             if len(found) >= _BODY_NUMBERS_MAX:
                 return
             digits = whole.replace(",", "")
