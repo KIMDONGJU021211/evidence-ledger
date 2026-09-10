@@ -32,6 +32,7 @@ from .core import (
     numbers_claimed_in,
     numbers_in,
     numbers_in_body,
+    unanswered,
 )
 
 __version__ = "0.1.0"
@@ -44,6 +45,7 @@ __all__ = [
     "numbers_in",
     "numbers_in_body",
     "numbers_claimed_in",
+    "unanswered",
     "TYPE_BODY_READ",
     "TYPE_PAGE_OPEN",
     "TYPE_LISTING",

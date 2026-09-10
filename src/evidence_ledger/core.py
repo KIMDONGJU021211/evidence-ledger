@@ -53,6 +53,8 @@ __all__ = [
     "canonical_source",
     "numbers_in",
     "numbers_claimed_in",
+    "numbers_in_body",
+    "unanswered",
 ]
 
 #: Kinds of evidence. Separating ``page_open`` from ``body_read`` is the entire
@@ -307,6 +309,57 @@ def numbers_claimed_in(answer: str) -> set[str]:
         if digits not in _TRIVIAL:
             found.add(str(int(digits)))
     return found
+
+
+#: Cell values that look like an answer and are not one.
+#
+# Multilingual on purpose: an agent working Korean sites writes ``확인 불가``
+# where an English one writes ``N/A``, and a grader that only knows one of them
+# reports the other as filled.
+_UNANSWERED = re.compile(
+    r"^\s*(?:"
+    r"[-–—_.]+"                     # - – — _ ...
+    r"|n\s*/?\s*a|na|null|none|nil|tbd|tba"
+    r"|unknown|not\s+(?:found|available|provided|specified|applicable)"
+    r"|pending|missing|\?+"
+    r"|미상|미확인|불명"
+    r"|(?:확인\s*불가|확인\s*못\s*함|확인되지\s*않|알\s*수\s*없|파악\s*불가"
+    r"|정보\s*없|해당\s*없|자료\s*없|내용\s*없|값\s*없|없)"
+    r"(?:음|습니다|다|어요|네요)?"
+    r")\s*[.。]?\s*$",
+    re.I,
+)
+
+
+def unanswered(value: Any) -> bool:
+    """Is this cell a **placeholder standing in for an answer**?
+
+    ## Why this belongs next to the number checks
+
+    Fabrication detection only looks at cells that were filled. An agent that
+    writes ``N/A`` into every column fabricates nothing — and scores perfectly:
+
+    ```
+    | Title                | Pages | ISBN  | URL       |
+    | Do it! Jump to Python | N/A   | N/A   | https://… |
+    ```
+
+    File exists. Format correct. Zero unsupported numbers. There were no numbers
+    to support. The absence of a lie is not the presence of an answer.
+
+    So count what was *asked for* as the denominator, and use this to decide
+    which cells actually carry one. A table that is 3 rows by 4 columns has 12
+    cells to fill regardless of how many the agent chose to fill.
+
+    Empty and whitespace count as unanswered. So does a lone dash, which is the
+    most common way a model says nothing while appearing to say something.
+    """
+    if value is None:
+        return True
+    if isinstance(value, (int, float)):
+        return False
+    text = str(value)
+    return not text.strip() or bool(_UNANSWERED.match(text))
 
 
 #: How deep to walk, and how many to keep, when reading numbers out of body

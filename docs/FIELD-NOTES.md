@@ -258,6 +258,74 @@ Two lessons, and the second is the general one:
 
 ---
 
+## 13. The blank that scores perfectly
+
+We added a content grader to a research-and-write benchmark: does the file the
+agent produced actually contain what was asked for? One run produced this:
+
+```
+| Title                 | Pages | ISBN  | URL       |
+| Do it! Jump to Python | 확인 불가 | 확인 불가 | https://… |
+```
+
+Every existing check passed it. The file existed. The format matched. **Zero
+unsupported numbers** — the strongest signal we had.
+
+There were no numbers to support. Fabrication detection can only inspect cells
+that were filled, and this agent filled none of them. It said *I could not
+confirm this* in every column, which is honest, and then the scoreboard read
+that honesty as a perfect run.
+
+The absence of a lie is not the presence of an answer.
+
+Two things follow, and the second is the one that generalises:
+
+1. **The denominator is what was asked, not what was written.** Three rows of
+   four columns is twelve cells to fill, however many the agent chose to fill.
+   Count against the request. If the table is missing entirely, that is 0%, not
+   *not applicable* — the run that produced nothing must not outscore the run
+   that produced something imperfect.
+2. **Every metric has a shape it cannot see.** Ours counted invention and was
+   blind to omission, because it only ever looked where a value already was.
+   When you add a check, ask what its opposite failure looks like and whether
+   anything is watching for that.
+
+`unanswered()` is the small piece of this worth sharing: the set of strings that
+occupy a cell without answering it. It is deliberately multilingual — an agent
+working Korean sites writes `확인 불가` where an English one writes `N/A`, and a
+grader that knows only one reports the other as filled. It anchors the whole
+cell, so `없음이라는 회사` ("a company called Eopseum") stays an answer.
+
+## 14. One bug with two homes, and two different fixes
+
+In a single day the same defect surfaced three times in three places:
+
+```
+took_ms         written to the in-memory store, read from the persisted step
+404 retry       added to the non-streaming call, taken by the streaming one
+db snapshot     copied per call in the grader, and again in the benchmark
+```
+
+Each time the first fix felt complete. Each time half the system still had the
+bug, and the half we fixed was the half nothing used. The `took_ms` note is the
+clearest: we had committed *"we measure tool time now"*, and the next day's run
+reported 2,495 seconds of work as **zero seconds of tools**.
+
+> If the value is produced in one place and consumed in another, fixing the
+> producer feels like fixing the bug. Write the test against the consumer.
+
+The third one carried a second lesson we nearly missed. Copying a live
+SQLite file per call gives you occasional torn snapshots; in the grader, which
+runs after everything, the fix is *snapshot once*. We applied the same fix to
+the benchmark — and it was wrong there, because the benchmark reads **while the
+run is still going**, so a single snapshot would hide every later job. That one
+needed a read-only connection to the live file instead.
+
+**The same bug in two places can need two different fixes.** Recognising the
+pattern is not the same as knowing the remedy.
+
+---
+
 ## What we would tell you to check first
 
 1. **Your denominator.** Before believing any agent metric, ask what is being
