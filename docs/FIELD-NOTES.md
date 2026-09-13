@@ -326,6 +326,70 @@ pattern is not the same as knowing the remedy.
 
 ---
 
+## 15. The tally that could not see the table
+
+The planner decides whether an agent has delivered "three items" by counting
+items in its answer. The counter stopped at the first bulleted list it found.
+Our answers almost always end with a short bulleted block — file name, file
+path — so a finished three-row table was counted as **two items**.
+
+We only noticed because we wanted a new rule on top of it ("reading six pages
+is not delivering three items"). Replaying the rule over 445 past runs flagged
+**33.6%** of passing runs as short. Most of those were the counter, not the
+agent.
+
+The obvious fix, `max(bullets, table_rows)`, was wrong too. It dropped the
+flag rate to 2.7%, and every one of the ten runs it newly passed was a real
+shortfall: the answer said *"two of the three were confirmed"* and then
+explained why in four to six bullets, which outnumbered the two table rows.
+A counter whose score rises with the length of the excuse is not a counter.
+Counting the table when there is one, bullets otherwise, flagged 5.3% — and
+the extra ten were the real ones.
+
+One more narrowing came from an existing test rather than from history:
+*"posting 1, posting 2 and posting 3 are confirmed"* lists three things in one
+sentence and counts as zero. **Being unable to count is not the same as
+counting short.** The rule now fires only when it can count and the count is
+short.
+
+> Replay every candidate rule over real history and read the disagreements,
+> not the totals. Two of our three candidate rules looked fine as a number.
+
+## 16. A held-out set, and what an empty ledger means
+
+We iterated for three days on the same five tasks, so we wrote five new ones —
+different sites, two new file formats (CSV, HWPX), one new shape (compare two
+stores) — and **committed them before running them**, with the rule that we
+would not re-run them to raise the number.
+
+| | iterated tasks (n=3) | held-out tasks (n=1) |
+|---|---|---|
+| file produced | 14/15 | 4/5 |
+| table cells filled | 76% | 55% |
+| numbers not found in pages read | 0 | 0 |
+
+The document-writing fixes carried over. Finding fields on unfamiliar product
+and posting pages did not, and the two-store comparison sent the model away
+from the browser into a network-enabled code sandbox, which stopped at an
+approval gate. Before the held-out run our graders were wrong three more times
+(comma CSV read as no table, Korean HWPX tables flattened to one cell per line,
+URL query strings ignored so any product URL matched) — found only because we
+graded known-good and known-bad files before trusting the numbers.
+
+Writing the public report surfaced one more. An earlier run had **four numbers
+flagged as unsupported**. That run had ended in an error, and errored runs keep
+no evidence; the check compared the file against an empty ledger and flagged
+everything. We cannot say whether those numbers were invented.
+
+> An empty ledger means *cannot check*, not *nothing supports this*. Report the
+> two differently, or a crash will read as a fabrication — and a fabrication
+> in a crashed run will read as a crash.
+
+The full runs, graders and the list of every time our instrument was wrong are
+in [jarvis-bench](https://github.com/KIMDONGJU021211/jarvis-bench).
+
+---
+
 ## What we would tell you to check first
 
 1. **Your denominator.** Before believing any agent metric, ask what is being
