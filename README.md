@@ -163,6 +163,9 @@ the *instrument* was the thing that was broken:
   entered in order to search.
 - A site tool that both searched and bookmarked, registered as a listing, so
   every write through it fell out of the violation count.
+- A shell that measured AppData from **inside another app's MSIX sandbox**, so
+  what it created was invisible to everyone else and what it checked was that
+  app's view.
 
 These are in the tests, named after what broke.
 

@@ -388,6 +388,39 @@ everything. We cannot say whether those numbers were invented.
 The full runs, graders and the list of every time our instrument was wrong are
 in [jarvis-bench](https://github.com/KIMDONGJU021211/jarvis-bench).
 
+## 17. The shell doing the measuring lived inside another app's sandbox
+
+We were measuring what a desktop agent can still do once it is packaged as
+MSIX: can it write a token file other tools read, edit another app's config,
+start its backend as a child process. The first step failed strangely. We
+staged the package under `%LOCALAPPDATA%`, our shell listed the manifest right
+there, and the Windows deployment service said the path did not exist.
+
+The shell had been started by the Claude desktop app, which is itself
+MSIX-packaged. Processes launched by a packaged app inherit its file-system
+virtualization. Everything the shell *created* under AppData went into Claude's
+private cache, and everything the shell *checked* under AppData was Claude's
+merged view. An end-to-end test run from the same shell earlier that day had
+quietly written its whole data folder there too. Nothing errored; every check
+passed against a copy no other process could see.
+
+What we changed: seed files are created by a process launched through
+`explorer.exe` (outside any package), staging lives on NTFS outside AppData,
+and every check names an explicit path. The same care caught one more: our
+probe's first child-process test failed because of argument quoting, not
+packaging — we only knew because we ran the same binary unpackaged.
+
+With that fixed, the default manifest (no restricted capability) came out as:
+newly created AppData files are private, but edits to existing files — including
+write-temp-then-rename — reach the real file; another package's
+`Packages\…\LocalCache` is writable; a child exe *inside* the package shares its
+view while `cmd.exe` does not; loopback to an unpackaged server works.
+[Probe and table](https://github.com/KIMDONGJU021211/jarvis-bench/tree/main/msix).
+
+> Before trusting a file-system measurement, check which process tree you are
+> measuring from. The same path on the same machine can name two different
+> files.
+
 ---
 
 ## What we would tell you to check first
