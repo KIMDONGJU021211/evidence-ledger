@@ -421,6 +421,164 @@ view while `cmd.exe` does not; loopback to an unpackaged server works.
 > measuring from. The same path on the same machine can name two different
 > files.
 
+## 18. Connecting the tool is not adopting it
+
+We ship a local desktop agent that exposes its tools over MCP: a real logged-in
+browser, the user's files, document writers. A coding assistant had it
+connected — we confirmed the server process was running as its child. Then we
+asked, in the phrasing a real user would use: "I have this thing installed, I
+don't really know how to use it — find me three job postings and put them in a
+file."
+
+It called our tools **zero times**. It used its own web search, wrote the file
+with its own editor, and then said it had used our agent. It had not. Asked
+again, it repeated the same path, and the second run cost another full context.
+
+The tools were listed. The tool descriptions were good. A skill file with the
+whole procedure sat installed. None of that is read reliably: a skill is loaded
+when the model decides to look, and this client has no skills folder at all.
+The global instruction file is different — it is read every turn.
+
+What we changed: connecting now writes four lines into the client's global
+instruction file and points at the skill file for the rest, instead of putting
+the procedure in the instructions. One of those lines is "if you did not call
+the tool, do not say you used it." Same prompt, same model, immediately after:
+it delegated the task through our entry point and returned a real file with
+sources.
+
+> Adoption is not a property of the connection. Measure calls, not availability,
+> and put the pointer where the client cannot skip it.
+
+---
+
+## 19. The screenshot raised the window
+
+The agent drives a real browser on the user's own desktop, so we added a rule:
+while someone is typing, do not pull that window to the front. We wrapped every
+place our code focused a window or maximized it, measured it — nine of nine
+tasks still passed with the foreground calls skipped, three of three with the
+window minimized — and shipped it.
+
+The user reported the browser still jumping to the front.
+
+Our rule covered our own calls. The live view in the app takes a screenshot of
+the page every few seconds, and the browser automation library brings the tab to
+the front before capturing. Nothing in our code said "focus"; the library did it
+for us, on a timer.
+
+What we changed: while the user is active we capture through the debugging
+protocol instead, which does not raise the window, and fall back to the library
+call when that fails (a minimized window can produce no frame at all).
+
+> When you decide not to take something — focus, the clipboard, the foreground —
+> audit the libraries that take it on your behalf. Your own call sites are the
+> half you can see.
+
+---
+
+## 20. The build checked that our code imports
+
+Packaging the agent for a store, we excluded the browser-automation package
+from the bundle to keep it small; the browser binaries live elsewhere anyway.
+The build's only sanity check imported our own modules, which succeeded. The
+package passed its install, launch, chat and update tests.
+
+The first task that needed the web answered `No module named 'playwright'`.
+A shipped build that cannot browse — and the test that caught it was a run we
+did for an unrelated feature.
+
+What we changed: the bundled interpreter now imports every module the product
+actually needs (seventeen of them) and the build fails on a missing one; a unit
+test cross-checks that list against the imports in the source, so a new
+dependency cannot be dropped silently. Optional features report as off rather
+than failing.
+
+> "It builds" and "it installs" are not "it has what it needs." Have the build
+> import the product's real dependency list from inside the package.
+
+## 21. The instrument had found nothing, and reported zero
+
+We wanted to know whether the agent still works when its browser window is
+minimized — the worst case for a policy that says "don't raise the window while
+someone is typing." So we wrote a watcher: find that browser's windows, keep
+them minimized, and log every time one came back to the front. Nine runs later
+the log read: no restores. Three of three tasks passed. We wrote it up.
+
+Then we checked the watcher. It matched windows by the browser profile path,
+and the path we passed it was wrong — the profile lives under a different
+folder name than we assumed. It had matched **zero processes** for the whole
+run. Nothing was ever minimized. The number that looked like "the policy holds
+even in the worst case" was the number for "we did nothing."
+
+It read as success because the watcher only logged the bad event. No windows
+found, no restores, empty log, green.
+
+What we changed: the watcher now logs what it *sees* every minute — how many
+processes matched, how many windows, how many are minimized — and we re-ran the
+measurement. (It passed for real: three of three, same durations.) The write-up
+keeps both runs, labelled.
+
+> An instrument that only records failures cannot tell you it was pointed at
+> nothing. Make it report what it observed, not just what went wrong.
+
+---
+
+## 22. The model was not the one that got it wrong
+
+We were comparing small local models on the same five tasks. One of them
+"failed" five runs: the file it produced scored zero readable characters. The
+obvious reading was that the small model wrote garbage.
+
+It hadn't. The task asked for a document; the model called our writer with a
+filename ending in the older Korean word-processor extension. Our writer
+produces the newer zipped format regardless — and wrote those bytes under the
+old name. The word processor won't open it, and our own reader, dispatching on
+the extension, read nothing. Two other runs of the same set chose a third
+extension and lost points the same way.
+
+The grader recorded this as the model's failure, in a table meant to decide
+which model we recommend to users on 8 GB cards.
+
+What we changed: the writer now makes the name match the format it actually
+produced and says so in its result; the format check moved into the shipped tool
+rather than the grader. The model still has to pick sensibly — but a recommendation
+table should not be scoring our own file naming.
+
+> When a benchmark blames the model, check the harness on the failing path
+> first. Ours had produced the file; only the name was ours to get wrong.
+
+---
+
+## 23. The approval nobody was in the room to see
+
+Two failures, one shape: work that ran with no one watching it.
+
+An outside assistant, driving our agent over MCP, asked it to write into the
+user's documents folder. That escalates to a human approval, and the approval
+card appears in *our* window — which nobody was looking at, because the person
+was in the other app's chat. The card expired. The delegating assistant polled a
+status that said "running, 0 steps" for twenty minutes, then gave up and asked
+the user to go look.
+
+The same night, a restart brought back jobs that had been running hours earlier:
+on start we requeued everything marked running, without asking how old it was.
+The user watched a browser open by itself at 3am and redo an abandoned research
+task. In our own measurements, those resurrected jobs also queued ahead of the
+new ones and their wait time landed in the new run's numbers.
+
+What we changed: recovery is bounded — work older than a short window is closed
+as stale with a reason, not resumed. The status an outside caller sees now
+distinguishes queued (with queue depth), waiting-for-approval, waiting-for-a-decision,
+and running (with the current step), so a client can tell the user what to do
+instead of waiting on a number that will never move. And an opt-in lane lets
+reversible actions through unattended — only where an undo is actually
+registered; anything that sends, publishes, pays or deletes still waits for a
+person.
+
+> Unattended is a different environment. Ask what an action does when no one is
+> in the room: who sees the prompt, who resumes the work, and what the caller is
+> told while it waits.
+
 ---
 
 ## What we would tell you to check first
@@ -432,3 +590,10 @@ view while `cmd.exe` does not; loopback to an unpackaged server works.
    tested. Feed it a run you know is clean and a run you know is dirty.
 3. **Whether a clean zero is a real zero.** `read_only_violations: 0` from a
    ledger that knows 19 of your 83 tools is not information.
+4. **What your instrument saw, not only what it flagged.** A watcher that logs
+   failures alone cannot tell you it was pointed at nothing.
+5. **The harness, on the failing path.** Before a benchmark blames a model,
+   check the part of the pipeline you own — the file it wrote, the name you gave
+   it, the reader that scored it.
+6. **What happens with nobody in the room.** Who sees the approval, who resumes
+   the work after a restart, and what a remote caller is told while it waits.
