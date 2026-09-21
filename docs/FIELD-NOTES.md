@@ -581,11 +581,126 @@ person.
 
 ---
 
+## 24. The guard that fired before there was anything to guard
+
+We were measuring a small local model — a 4B on an 8 GB laptop — on six coding
+tasks, three runs each. Earlier the same day we had added a rule after one bad
+run: the model had written a page, looked at it in a browser, and never ran a
+check on it. The rule said that once the agent had been pushed back for answering
+without a verification, the next turn would offer only the four tools that can
+verify or fix — run, write, edit, delete. Prose telling it to verify had not
+worked; taking the other tools away would.
+
+The series scored 13 of 18. We read nothing into that number: at this size a
+series moves by two or three runs on chance alone. What we can read is the
+mechanism, because in three of the eighteen runs a tool call was refused, and in
+two of them the model was trying to read the very file it had to fix.
+
+The tool list in the trace gave nothing away: `read_text_file`, marked failed.
+The step rows carry an error field, and there it was — `not in the active
+profile`, and a duration of **0 ms**. A tool that fails in zero milliseconds did
+not fail; it was never run.
+
+The rule's condition was "no verification since the last pushback". It never
+asked whether anything had been changed. A run that had written nothing and had
+merely said "I will read the files first" got pushed back, lost its read tools,
+and could not read the file it was supposed to fix. The rule was written for a
+run that had made something and not checked it. It fired on a run that had made
+nothing.
+
+There was a second layer. The refusal told the model what it could use instead,
+and built that advice from the full tool profile rather than the narrowed one:
+"you can use: search, grep, read" — the tools we had just removed. In one run the
+model cycled through them, each refused in turn, and ended.
+
+Our tests had covered whether the rule narrows. None covered when it should not.
+
+What we changed: the rule now requires a successful write or edit in the run, so
+there is something to verify; the refusal's advice is built from the tools
+actually on offer. Both fixes were checked by removing them and watching the new
+tests fail.
+
+> A defense needs the thing it defends in its condition. And a failure that takes
+> zero milliseconds is a refusal, not an attempt — read the error field, not just
+> the list of tool names.
+
+---
+
+## 25. The last words of a failed run
+
+Outside assistants hand work to our agent and poll for the result. For a job that
+had failed, the status they saw was `failed` and the first 500 characters of an
+error code.
+
+Across three series of 16 to 18 runs each, 15 jobs ended `failed`. Five of them
+had already written files that a grader, run separately, scored as passing (three
+of four in one series, one of six and one of five in the others). The caller was
+told "failed" and would have started over. Handing work to a cheaper agent is only
+worth it if the work survives its failures, and here it did not.
+
+The obvious fix has a trap. On a job that failed verification, the model's final
+message is usually confident — in the runs we read, some variant of "done, the
+file was created". Attach that to the failure report and a verification failure
+turns into a confident answer, which is the shape of note 1 and note 7 with a
+status field in front of it.
+
+What we changed: a failed or cancelled job now reports the files it left, the
+pages it read, where it stopped, and whether the run had changed or verified
+anything. The model's last message is kept, but under its own key,
+`unverified_claim`, with a line telling the caller not to state it as fact. Files
+the run created and then deleted — scripts it wrote to check its own work — are
+not listed. The step store holds arguments only in memory, so the list is rebuilt
+at the moment the failure is recorded.
+
+The list is a small addition to this library: a delete effect, counted as a write
+for read-only runs, and `Ledger.surviving_writes()` — what a run wrote, minus what
+it later removed. It says only that the files exist. Whether anyone checked them
+is a separate field.
+
+> A failure report is evidence too. Say what the run left behind and whether
+> anything checked it — and keep the run's own opinion of itself in a separate
+> place from the facts.
+
+---
+
+## 26. The job we gave up on kept running
+
+Our benchmark gave each task a 25-minute budget. When a job passed it, the driver
+logged the job as `running`, 0 steps, and moved on to the next task. It did not
+cancel it.
+
+The backend runs one job at a time. The abandoned job — still rewriting a check
+script at the 28-minute mark — kept the model, the next task waited in the queue
+behind it, and that task's clock had started when it was submitted. The wait was
+counted as work. Separately, the grader looked at the files of the unfinished run,
+found them acceptable, and scored it a pass: a run that had neither finished nor
+been counted as timed out.
+
+The same day we re-read an earlier tally. "15 of 18" was 15 of 16: two runs had
+never run. One sat at an approval card from step zero: the helper we wrote to
+click approvals during the benchmark read the arguments from a field that does
+not exist, so a delete inside the workspace looked like it was outside, and the
+card waited. The other was denied by the same helper on purpose — it refuses
+approvals outside the workspace — and a denial cancels the job.
+
+What we changed: the driver cancels a job that passes its budget and waits for
+the cancellation to land before starting the next; each result row records
+`timed_out`; the grader sorts runs into ran, timed out and did not run, and prints
+three numbers — files pass, job completed, and both together, which is the one we
+quote. Re-scored on that ruler, the three series read 12 of 16, 11 of 18 and 13 of
+18. We had been reading them as 15, 13 and 14 of 18.
+
+> When you give up on a job, cancel it. Otherwise your next measurement is timing
+> the last one.
+
+---
+
 ## What we would tell you to check first
 
 1. **Your denominator.** Before believing any agent metric, ask what is being
    skipped. Runs with no tool calls. Tools that are not in your table. Records
-   dropped for a missing source.
+   dropped for a missing source. Runs that never ran, and jobs you stopped
+   waiting for but never stopped.
 2. **Both directions.** A metric that only ever fires one way has not been
    tested. Feed it a run you know is clean and a run you know is dirty.
 3. **Whether a clean zero is a real zero.** `read_only_violations: 0` from a
@@ -597,3 +712,9 @@ person.
    it, the reader that scored it.
 6. **What happens with nobody in the room.** Who sees the approval, who resumes
    the work after a restart, and what a remote caller is told while it waits.
+7. **Failures that take zero milliseconds.** A step that fails in 0 ms was
+   refused, not attempted. Count refusals apart from failures, and read the error
+   field, not only the list of tool names. Then ask what your own guards refuse.
+8. **What a failed run hands back.** The files it left, whether anything checked
+   them, and — in a separate place — what the run says about itself. A status of
+   `failed` alone throws away the work that survived.
