@@ -43,6 +43,9 @@ pip install git+https://github.com/KIMDONGJU021211/evidence-ledger
   plausible enough that nobody noticed for a week.
 - You want to know **which sources were actually read** in a run, not which
   tools were called.
+- A run **failed**, and the caller was told only that — although it had already
+  written files that were fine. `Ledger.surviving_writes()` lists what a run left
+  behind: what it wrote, minus what it deleted again.
 
 Every one of those runs is indistinguishable from a good one in a step trace.
 They are distinguishable in a per-result ledger, which is all this library is.

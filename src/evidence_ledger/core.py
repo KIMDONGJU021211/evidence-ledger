@@ -76,10 +76,15 @@ TYPE_VERIFICATION = "verification"
 EFFECT_READ_LOCAL = "read_local"
 EFFECT_READ_WEB = "read_web"
 EFFECT_WRITE_LOCAL = "write_local"
+#: Removing something a run (or anyone) had written. Register your delete tool
+#: with this, not with ``write_local`` — :meth:`Ledger.surviving_writes` needs to
+#: tell "made a file" from "took it away again".
+EFFECT_DELETE_LOCAL = "delete_local"
 
 #: Effects that count as writes. If one of these appears in a run declared
-#: read-only, the policy was broken.
-WRITE_EFFECTS = frozenset({EFFECT_WRITE_LOCAL})
+#: read-only, the policy was broken. Deleting is a write: a read-only run that
+#: removed a file broke the policy exactly as much as one that created it.
+WRITE_EFFECTS = frozenset({EFFECT_WRITE_LOCAL, EFFECT_DELETE_LOCAL})
 
 
 @dataclass(frozen=True)
@@ -645,6 +650,39 @@ class Ledger:
             if body:
                 chunks.append(body)
         return "\n".join(chunks)
+
+    def surviving_writes(self) -> list[str]:
+        """What this run **left behind**: sources it wrote, minus ones it later deleted.
+
+        A failed run is still evidence. We measured an agent on a small local
+        model over three series of 16-18 runs: 5 of the 15 jobs that ended
+        ``failed`` had already written files a grader scored as passing (3 of 4
+        in one series, 1 of 6 and 1 of 5 in the others). The caller was told only
+        ``failed`` and would have started over. This is the list a failure
+        report should carry.
+
+        Order follows the steps. A source written, deleted and written again is
+        listed once, at its last write. Failed calls are ignored, and so is a
+        delete of something this run never wrote (that file was not ours to
+        report). Temporary scripts a run creates to check its own work and
+        removes afterwards do not appear — which is the point: listing them would
+        hand the caller files that no longer exist.
+
+        Nothing here says the files are *correct*. Whether anyone checked them is
+        a separate question; keep the run's own verdict on itself out of the
+        report and let this list say only what exists.
+        """
+        kept: list[str] = []
+        for entry in sorted(self.records, key=lambda e: e.step):
+            if not entry.ok:
+                continue
+            if entry.effect == EFFECT_WRITE_LOCAL:
+                if entry.source_id in kept:
+                    kept.remove(entry.source_id)  # rewritten later: keep only the last position
+                kept.append(entry.source_id)
+            elif entry.effect == EFFECT_DELETE_LOCAL and entry.source_id in kept:
+                kept.remove(entry.source_id)
+        return kept
 
     def answered_without_reading(self) -> bool:
         """Saw lists, opened nothing to the body. The 2026-09-02 shape."""

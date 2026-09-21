@@ -15,6 +15,7 @@
 """
 
 from .core import (
+    EFFECT_DELETE_LOCAL,
     EFFECT_READ_LOCAL,
     EFFECT_READ_WEB,
     EFFECT_WRITE_LOCAL,
@@ -55,6 +56,7 @@ __all__ = [
     "EFFECT_READ_LOCAL",
     "EFFECT_READ_WEB",
     "EFFECT_WRITE_LOCAL",
+    "EFFECT_DELETE_LOCAL",
     "WRITE_EFFECTS",
     "__version__",
 ]
