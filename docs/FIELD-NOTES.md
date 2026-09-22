@@ -695,6 +695,42 @@ quote. Re-scored on that ruler, the three series read 12 of 16, 11 of 18 and 13 
 
 ---
 
+## 27. The instructions that arrived late
+
+**2026-09-23.** We took a coding session that a frontier model had stopped three
+steps in, and resumed it with a local model (`qwen3.6:35b-a3b` through Ollama's
+Anthropic-compatible endpoint — an unsupported configuration, which we knew).
+Three small tasks, graded per task by tests.
+
+In the environment we actually work in, none of six runs finished the remaining
+tasks. Every one ended the same way: the model stopped mid-task and greeted us —
+"I'm ready to help. What would you like to work on?"
+
+Our first theory was that the harness could not carry a local model. It was wrong:
+with an empty config directory the same model finished two of three, and three of
+three with our instructions file or our skills added back. Turning off one thing —
+the account's claude.ai connectors (`ENABLE_CLAUDEAI_MCP_SERVERS=false`) — took the
+original environment from 0 of 6 to 6 of 6.
+
+Our second theory was also wrong, and it is the reason for this note. On resume,
+the transcript records a notice that the two connectors were removed. That was the
+obvious suspect. It is also present, identically, in every run that succeeded. The
+runs that failed have one more entry: a few tool calls into the turn, the
+connectors finish connecting and their full instructions are inserted directly
+after a tool result. Within three to eight entries the model greets us and ends the
+turn — six of six.
+
+A notice that appears in every run cannot explain why some of them fail. We almost
+wrote the first thing we saw into the report.
+
+What we changed: nothing in the library. We filed the timing with the harness
+maintainers, and our own resume path now leaves the user's connector settings
+alone rather than asking them to switch anything off.
+
+> Before you name a cause, check that it is absent from the runs that worked.
+
+---
+
 ## What we would tell you to check first
 
 1. **Your denominator.** Before believing any agent metric, ask what is being
