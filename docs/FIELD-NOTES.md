@@ -731,6 +731,164 @@ alone rather than asking them to switch anything off.
 
 ---
 
+## 28. It said it couldn't, and the status said complete
+
+**2026-10-03.** We ran our agent on tasks from Online-Mind2Web. These are real
+websites, with each task given its starting site as in the official setup, and
+we grade them ourselves. Three runs ended with lines like *"I was unable to
+complete the selection"*, and all three were logged `complete`. Two more ended
+on *"Let me try one more source — rent.com"*, a plan for a next step that never
+ran. Those were also `complete`.
+
+Our check for "the answer admits it didn't finish" had been written in the
+language most of our users write in. In English it matched nothing.
+
+The first fix listed English verbs. The next batch went straight past the list:
+*"Let me type…"*, *"Let me snapshot…"*, *"comboboxes I couldn't expand"*. The
+second fix matched the shape instead — *I couldn't / was unable to* + a verb,
+*Let me / I'll* + a verb — and excluded the sign-offs *"Let me know"* and
+*"I'll be happy to"*. The promise shape, replayed over 52 English answers from
+production, caught 8, all of them real, with no false hits. A 225-character promise then
+slipped past the 200-character cap on "the whole answer is a promise". We raised
+the cap for English to 450. Replayed over 64 answers, that caught 3 new cases,
+all real, again with no false hits.
+
+On the same tasks after the fix, false completes went from 3 to 0.
+
+> A honesty check written in one language is a check for that language. Match the
+> shape of an admission, not a list of words — the next run will use a word you
+> did not list.
+
+---
+
+## 29. The checker was wrong, and the agent's rebuttal replaced the answer
+
+**2026-10-03.** A task asked for a site's most-popular list. The agent opened the
+site's own sorted page and answered with the list. Our "used the site's sort"
+check only read sort parameters from the query string. This site puts the sort
+in the path (`/browse/…/sort:popular`), so the check said no sort had been used
+and pushed back. The agent argued its case: *"The list is shown above, and I did
+use the sort."* The harness keeps the **last** message as the answer, so the list
+disappeared. The user got the argument instead.
+
+We fixed the checker. Then we added a rule: if the final answer only points back
+("shown above") and an earlier answer carried the content, use the earlier one.
+
+The first version of that rule was the dangerous one. Replayed over 2,604
+answers from production, a loose matcher hit 38. Among them were answers that
+began *"In my previous answer I was wrong — here is the correction."* Restoring
+the earlier answer there brings the wrong one back. The narrowed rule only
+matches "the content is above" shapes and never fires when the answer apologizes
+or corrects itself. It hits 2 of the 2,604, and both are real.
+
+> When the checker is wrong, the agent's reply to it becomes the product. And
+> replay a fix over real output before you ship it — ours would first have undone
+> corrections.
+
+---
+
+## 30. Eighteen thousand characters of the same paragraph
+
+**2026-10-03.** A scheduled job reads the agent's own posts on a forum and
+records views and comments in a spreadsheet. One night the answer was 18,717
+characters: a single "I'll read the raw JSON next" paragraph, repeated. When a
+turn runs out of thinking budget, the harness asks for a second pass with
+thinking off. That second pass looped on its own promise. Our "ends on a promise"
+check stops looking past 450 characters, so a promise long enough is not a
+promise. It shipped as the answer, and no spreadsheet was written.
+
+The loop had a cause upstream. The model had opened the post's `.json` directly.
+The tool that adds a digest of a post (score, comments) skipped URLs that were
+already `.json`. The raw JSON was cut at 20,000 characters, before the comments
+it needed.
+
+What we changed:
+- Repeated paragraphs are collapsed before any check runs. So is a trailing
+  fragment that is the start of an earlier paragraph, and a harness marker the
+  model echoed back. The first version changed 303 of 2,609 production answers:
+  repeated `---` separators. The second changed 4: short headings like
+  "Key function:". The third changes 2, both real loops.
+- The digest is attached to `.json` URLs too, and now includes the comments
+  (author, score, first 160 characters, how many were collapsed and unread). The
+  same job re-run read 8 posts and about 55 comments and did not loop.
+
+> A length cap on a check is a door. Normalize what you measure before you measure
+> it — and when you normalize, replay it, because the first version will eat
+> something that was fine.
+
+---
+
+## 31. The note between the call and the result
+
+**2026-09-30.** After a person answered a question card, the model received the
+answer and then asked the same question again — three times, in a run where the
+answer was sitting in our database.
+
+We found one cause, fixed it, and replayed a synthetic conversation: 3 of 3
+re-asks became 0 of 3. In the real app it still happened. The synthetic
+conversation was missing what the real one had. On resume, the setup step
+re-appended two context notes to the end of the conversation, and that put them
+**between the tool call and its result**. Replaying the real conversation that
+was sent to the model gave 3 of 3 re-asks. Moving the result directly after the
+call gave 0 of 3.
+
+Nothing errors. The template renders, the model answers, and it answers as if
+the result was not there. A reader of our forum post said the same about their own
+stack, almost word for word.
+
+What we changed: notes added on resume are held until after the last call's
+result. Model-behaviour bugs are now debugged against the conversation the run
+actually sent, captured from the running app, not a reconstruction.
+
+> Reproduce a model's behaviour with the exact messages it received. A clean
+> replay of what you think was sent will pass while the real one fails.
+
+---
+
+## 32. The count beat the condition
+
+**2026-10-03.** We asked for five open startup-support programs "in AI or
+software" on a government portal. The answer listed five programs under the
+heading "AI/SW programs". None of the five had AI or software in its name. None
+of the pages it read for them mentioned either. The count check passed, because
+it counts how many and not what.
+
+What we changed: the conditions are extracted from the request. "AI or software"
+becomes two conditions, with synonyms and word boundaries so that *main* does
+not count as *AI*. A row counts as supported only if a condition word appears in
+its own name or in a page read for that row. Words the model wrote into a
+"category" column do not count, because writing that column is exactly what went
+wrong. Rows without support are named in a warning. The check does not decide
+that a row fails the condition. It reports that nothing read supports it.
+
+Before shipping, we replayed the extractor over 2,853 production requests. The
+first version took "by field", "specific" and "from the bookstore" as
+conditions. The shipped one pulls only real ones.
+
+> A count check sees how many. Something else has to look at what — and it should
+> look in what was read, not in what was written.
+
+---
+
+## 33. The flaky test was a production bug
+
+**2026-10-03.** One test failed in the parallel suite and passed alone. We moved
+on. Two runs later, five tests failed together, all in the same way: they
+expected warnings in Korean and got them in English.
+
+At the start of a run, the agent sets the reply language in a context variable,
+based on the request. Nothing reset it. Any run that came after an English run
+on the same thread got English warnings, and the suite's worker order decided
+which tests came after one. In production the order is whatever users do.
+
+What we changed: the run restores the previous language on exit, including on
+error. The suite then passed 5,310 of 5,310, and the next full run passed too.
+
+> A test that fails only in some orders is reporting leaked state. Ask what the
+> order is in production before you call it flaky.
+
+---
+
 ## What we would tell you to check first
 
 1. **Your denominator.** Before believing any agent metric, ask what is being
@@ -754,3 +912,7 @@ alone rather than asking them to switch anything off.
 8. **What a failed run hands back.** The files it left, whether anything checked
    them, and — in a separate place — what the run says about itself. A status of
    `failed` alone throws away the work that survived.
+9. **Your fix, against your own logs.** Before shipping a new check, replay it
+   over real past output, in both directions. The first version of one of our
+   fixes would have restored wrong answers (note 29). The first version of
+   another would have rewritten 300 good ones (note 30).
